@@ -2,7 +2,8 @@ from math import e
 import pygame as pg
 from config import *
 
-from state_manager import StateManager, GameState
+from state_manager import StateManager
+from game_state import GameState
 from play_state import PlayState
 
 pg.init()
