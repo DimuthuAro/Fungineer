@@ -1,4 +1,3 @@
-from math import e
 import pygame as pg
 from config import *
 

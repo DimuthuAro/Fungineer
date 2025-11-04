@@ -87,16 +87,82 @@ class GridComponent(Component):
         self.grid_x = grid_x
         self.grid_y = grid_y
 
-class DescriptionComponent(Component):
+class TooltipComponent(Component):
     def __init__(self, text="Description <Not Set>"):
         super().__init__()
-        self.text = text       
- 
+        self.text = text
+        self.tooptip_id = id(self)
+        self.is_on = False
+
+class TextComponent(Component):
+    def __init__(self, text=""):
+        super().__init__()
+        self.text = text
+
+class CollisionComponent(Component):
+    def __init__(self, plane=0):
+        super().__init__()
+        self.is_colliding = False
+        self.plane = plane
+
+class SpawnerComponent(Component):
+    def __init__(self, spawn_rate: float=5.0, enemy_type: list[str]=["BasicEnemy"]):
+        super().__init__()
+        self.spawn_rate: float = spawn_rate  # seconds between spawns
+        self.enemy_type: list[str] = enemy_type
+        self.time_since_last_spawn: float = 0.0  # seconds
+
+class TileComponent(Component):
+    def __init__(self, tile_type: int):
+        super().__init__()
+        self.tile_type = tile_type
+        
+class TreeComponent(Component):
+    def __init__(self, tree_type: str):
+        super().__init__()
+        self.tree_type = tree_type
+
+class FactoryComponent(Component):
+    def __init__(self, factory_type: str):
+        super().__init__()
+        self.factory_type = factory_type
+        
+class ResourceComponent(Component):
+    def __init__(self, resource_type: str, resource_amount: float=100):
+        super().__init__()
+        self.resource_type: str = resource_type
+        self.resource_amount: float = resource_amount
+        
+class WorkerComponent(Component):
+    def __init__(self):
+        super().__init__()
+        self.carrying_capacity = 100
+        self.current_load = 0
+        
+class AnimatedSpriteComponent(Component):
+    def __init__(self, frames: list[pg.Surface], frame_duration: float):
+        super().__init__()
+        self.frames = frames
+        self.frame_duration = frame_duration  # seconds per frame
+        self.current_frame_index = 0
+        self.time_since_last_frame = 0.0  # seconds   
+        
 class Entity:
+    EntityRegistry: dict[str, 'Entity'] = {}
+
     def __init__(self, name):
         self.name = name
+        self.tooltip_component = TooltipComponent(name)
         self.components = {}
+        self.state_data = {}
+        self.add_component(self.tooltip_component)
+        Entity.EntityRegistry[name] = self
         
+    def set_name(self, new_name: str):
+        del Entity.EntityRegistry[self.name]
+        self.name = new_name
+        Entity.EntityRegistry[new_name] = self
+
     def add_component(self, component: Component):
         self.components[component.name] = component
         
@@ -139,6 +205,20 @@ class System:
         else:
             self._check_component(components)
 
+    def get_direction_for_sprite(self, entity) -> str:
+        velocity = self.get_velocity(entity)
+        vx, vy = velocity
+        if abs(vx) > abs(vy):
+            if vx > 0:
+                return "right"
+            else:
+                return "left"
+        else:
+            if vy > 0:
+                return "down"
+            else:
+                return "up"
+    
     # Component Accessor Methods (Getters For Components From Entity)
     def get_position(self, entity) -> tuple[float, float]:
         position_component = cast(PositionComponent, entity.get_component("PositionComponent"))
@@ -159,12 +239,17 @@ class System:
         rect = pg.Rect(position_component.x, position_component.y, size_component.width, size_component.height)
         return rect
 
-    def get_description(self, entity) -> str | None:
-        description_component = cast(DescriptionComponent, entity.get_component("DescriptionComponent"))
+    def get_tooltip(self, entity) -> str | None:
+        description_component = cast(TooltipComponent, entity.get_component("TooltipComponent"))
         if description_component:
-            description_component = cast(DescriptionComponent, description_component)
+            description_component = cast(TooltipComponent, description_component)
             return description_component.text
         return None
+    
+    def set_tooltip(self, entity, new_tooltip: str):
+        tooltip_component = cast(TooltipComponent, entity.get_component("TooltipComponent"))
+        self.check_for_none(entity, tooltip_component)
+        tooltip_component.text = new_tooltip
     
     def get_enemy_type(self, entity) -> int:
         enemy_component = cast(EnemyComponent, entity.get_component("EnemyComponent"))
@@ -210,6 +295,143 @@ class System:
         sprite_component = cast(SpriteComponent, entity.get_component("SpriteComponent"))
         self.check_for_none(entity, sprite_component)
         return sprite_component.sprite
+    
+    def get_text(self, entity) -> str:
+        text_component = cast(TextComponent, entity.get_component("TextComponent"))
+        self.check_for_none(entity, text_component)
+        return text_component.text
+    
+    def get_collition_plane(self, entity) -> int:
+        collision_component = cast(CollisionComponent, entity.get_component("CollisionComponent"))
+        self.check_for_none(entity, collision_component)
+        return collision_component.plane
+    
+    def get_collition_status(self, entity) -> bool:
+        collision_component = cast(CollisionComponent, entity.get_component("CollisionComponent"))
+        self.check_for_none(entity, collision_component)
+        return collision_component.is_colliding
+    
+    def get_tile_type(self, entity) -> int:
+        tile_component = cast(TileComponent, entity.get_component("TileComponent"))
+        self.check_for_none(entity, tile_component)
+        return tile_component.tile_type
+    
+    def get_tile_grid_position(self, entity) -> tuple[int, int]:
+        grid_component = cast(GridComponent, entity.get_component("GridComponent"))
+        self.check_for_none(entity, grid_component)
+        return (grid_component.grid_x, grid_component.grid_y)
+    
+    def get_tree_type(self, entity) -> str:
+        tree_component = cast(TreeComponent, entity.get_component("TreeComponent"))
+        self.check_for_none(entity, tree_component)
+        return tree_component.tree_type
+
+    def get_tooltip_status(self, entity) -> bool:
+        tooltip_component = cast(TooltipComponent, entity.get_component("TooltipComponent"))
+        self.check_for_none(entity, tooltip_component)
+        return tooltip_component.is_on
+    
+    def get_factory_type(self, entity) -> str:
+        factory_component = cast(FactoryComponent, entity.get_component("FactoryComponent"))
+        self.check_for_none(entity, factory_component)
+        return factory_component.factory_type
+    
+    def get_resource_type(self, entity) -> str:
+        resource_component = cast(ResourceComponent, entity.get_component("ResourceComponent"))
+        self.check_for_none(entity, resource_component)
+        return resource_component.resource_type
+    
+    def get_worker_type(self, entity) -> int | None:
+        worker_component = cast(WorkerComponent, entity.get_component("WorkerComponent"))
+        if worker_component:
+            return 1  # Assuming only one type of worker for now
+        return 1
+    
+    def get_sprite_frames(self, entity) -> list[pg.Surface]:
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        return animated_sprite_component.frames
+    
+    def get_sprite_frame_duration(self, entity) -> float:
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        return animated_sprite_component.frame_duration
+    
+    def get_sprite_current_frame_index(self, entity) -> int:
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        return animated_sprite_component.current_frame_index
+    
+    def get_sprite_time_since_last_frame(self, entity) -> float:
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        return animated_sprite_component.time_since_last_frame
+    
+    def get_sprite_current_frame(self, entity) -> pg.Surface:
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        return animated_sprite_component.frames[animated_sprite_component.current_frame_index]
+    
+    def set_sprite_current_frame_index(self, entity, new_index: int):
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        animated_sprite_component.current_frame_index = new_index
+        
+    def set_sprite_time_since_last_frame(self, entity, new_time: float):
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        animated_sprite_component.time_since_last_frame = new_time
+        
+    def set_sprite_frames(self, entity, new_frames: list[pg.Surface]):
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        animated_sprite_component.frames = new_frames
+        
+    def set_sprite_frame_duration(self, entity, new_duration: float):
+        animated_sprite_component = cast(AnimatedSpriteComponent, entity.get_component("AnimatedSpriteComponent"))
+        self.check_for_none(entity, animated_sprite_component)
+        animated_sprite_component.frame_duration = new_duration     
+        
+    def set_worker_type(self, entity, new_worker_type: int):
+        worker_component = cast(WorkerComponent, entity.get_component("WorkerComponent"))
+        self.check_for_none(entity, worker_component)
+        # Currently only one type of worker, so no action needed
+        pass
+    
+    def set_resource_type(self, entity, new_resource_type: str):
+        resource_component = cast(ResourceComponent, entity.get_component("ResourceComponent"))
+        self.check_for_none(entity, resource_component)
+        resource_component.resource_type = new_resource_type
+    
+    def set_factory_type(self, entity, new_factory_type: str):
+        factory_component = cast(FactoryComponent, entity.get_component("FactoryComponent"))
+        self.check_for_none(entity, factory_component)
+        factory_component.factory_type = new_factory_type
+    
+    def set_tooltip_status(self, entity, is_on: bool):
+        tooltip_component = cast(TooltipComponent, entity.get_component("TooltipComponent"))
+        self.check_for_none(entity, tooltip_component)
+        tooltip_component.is_on = is_on
+
+    def set_tree_type(self, entity, new_tree_type: str):
+        tree_component = cast(TreeComponent, entity.get_component("TreeComponent"))
+        self.check_for_none(entity, tree_component)
+        tree_component.tree_type = new_tree_type
+
+    def set_tile_type(self, entity, new_tile_type: int):
+        tile_component = cast(TileComponent, entity.get_component("TileComponent"))
+        self.check_for_none(entity, tile_component)
+        tile_component.tile_type = new_tile_type
+        
+    def set_tile_grid_position(self, entity, new_grid_position: tuple[int, int]):   
+        grid_component = cast(GridComponent, entity.get_component("GridComponent"))
+        self.check_for_none(entity, grid_component)
+        grid_component.grid_x, grid_component.grid_y = new_grid_position
+    
+    def set_text(self, entity, new_text: str):
+        text_component = cast(TextComponent, entity.get_component("TextComponent"))
+        self.check_for_none(entity, text_component)
+        text_component.text = new_text
     
     def set_health(self, entity, new_health: int):
         health_component = cast(HealthComponent, entity.get_component("HealthComponent"))
