@@ -208,6 +208,9 @@ class System:
     def get_direction_for_sprite(self, entity) -> str:
         velocity = self.get_velocity(entity)
         vx, vy = velocity
+        # Default to down when no movement
+        if vx == 0 and vy == 0:
+            return "down"
         if abs(vx) > abs(vy):
             if vx > 0:
                 return "right"

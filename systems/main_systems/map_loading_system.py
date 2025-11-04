@@ -1,4 +1,4 @@
-from sympy import false
+import random
 from ecs import Entity, PositionComponent, SizeComponent, SpriteComponent, System, TileComponent, TooltipComponent
 import sprite_manager
 import os
@@ -19,9 +19,12 @@ class MapLoadingSystem(System):
                 HTileCount = 25  # Placeholder for horizontal tile count
                 tile_x = index % HTileCount
                 tile_y = index // HTileCount
-                tile_sprite = self.sprite_manager.get_sprite(f"GRASS")
+                grass_sprite = self.sprite_manager.get_sprite(f"grass")
+                dirt_sprite = self.sprite_manager.get_sprite(f"dirt")
+                land_sprites = [grass_sprite, dirt_sprite]
+                random_land_sprite = random.choice(land_sprites)
                 tile.add_component(PositionComponent(x=tile_x * 32, y=tile_y * 32))
-                tile.add_component(SpriteComponent(sprite=tile_sprite))
+                tile.add_component(SpriteComponent(sprite=random_land_sprite))
                 tile.add_component(TileComponent(tile_type=tile_value))
                 tile.add_component(SizeComponent(width=32, height=32))
                 self.state.entities.append(tile)

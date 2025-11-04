@@ -88,11 +88,11 @@ class PlayState(GameState):
 
     def create_entities(self):
         sprites = self.sprite_manager.sprites
-        self.entity_factory.create_entity("player", position=(200,200), sprite_names="player_004", size=(32,32))
-        self.entity_factory.create_entity("Worker", position=(100,100), sprite_names=["worker_000","worker_001","worker_002","worker_003",
-                                                                                      "worker_004","worker_005","worker_006","worker_007",
-                                                                                      "worker_008","worker_009","worker_010","worker_011",
-                                                                                      "worker_012","worker_013","worker_014","worker_015"], size=(32,32))
+        self.entity_factory.create_entity("player", position=(200,200), sprite_names="player_004", size=(64,64))
+        self.entity_factory.create_entity("Worker", position=(100,100), sprite_names=["worker_000","worker_001","worker_002","worker_003","worker_004","worker_005",
+                                                                                      "worker_006","worker_007","worker_008","worker_009","worker_010","worker_011",
+                                                                                      "worker_012","worker_013","worker_014","worker_015","worker_016","worker_017",
+                                                                                      "worker_018","worker_019","worker_020","worker_021","worker_022","worker_023"], size=(64,64))
         
 
         self.entity_factory.create_entity("Enemy", position=(300,300), sprite_names="enemy_000", size=(32,32))

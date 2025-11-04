@@ -142,7 +142,6 @@ class SpriteManagerGUI:
         thumb_scrollbar_h.config(command=self.thumbnail_canvas.xview)
         
         self.thumbnail_canvas.bind('<Button-1>', self.on_thumbnail_click)
-        self.thumbnail_canvas.bind('<Control-Button-1>', self.on_thumbnail_ctrl_click)
         self.thumbnail_canvas.bind('<MouseWheel>', lambda e: self.thumbnail_canvas.yview_scroll(-1 * (e.delta // 120), "units"))
         # Bind events to thumbnail canvas instead of container
         self.thumbnail_canvas.bind('<Configure>', lambda e: self.refresh_thumbnails())
@@ -341,11 +340,10 @@ class SpriteManagerGUI:
         self.thumbnail_canvas.delete("all")
         self.thumbnail_items.clear()
         self.thumbnail_cache.clear()
-        self.selected_thumbnails.clear()
         
         search_term = self.search_var.get().lower()
         filtered_sprites = [(name, sprite) for name, sprite in sorted(self.sprite_manager.sprites.items()) 
-                           if search_term in name.lower()]
+                   if search_term in name.lower()]
         
         if not filtered_sprites:
             return
@@ -418,43 +416,69 @@ class SpriteManagerGUI:
                 col = 0
                 row += 1
         
+        # Re-apply selection highlights (preserve only visible selections)
+        visible_names = {name for name, _ in filtered_sprites}
+        # Drop selections that are no longer visible
+        self.selected_thumbnails &= visible_names
+        for name in self.selected_thumbnails:
+            if name in self.thumbnail_items:
+                bg_id = self.thumbnail_items[name]['bg']
+                self.thumbnail_canvas.itemconfig(bg_id, outline='#00FF00', width=3)
+
         # Update scroll region
         total_rows = (len(filtered_sprites) + cols - 1) // cols
         scroll_height = padding + total_rows * thumb_total_size + 30
         self.thumbnail_canvas.config(scrollregion=(0, 0, canvas_width, scroll_height))
     
     def on_thumbnail_click(self, event):
-        """Handle thumbnail click"""
+        """Handle thumbnail click with Ctrl multi-select support"""
         canvas_x = self.thumbnail_canvas.canvasx(event.x)
         canvas_y = self.thumbnail_canvas.canvasy(event.y)
-        
+
         items = self.thumbnail_canvas.find_overlapping(canvas_x, canvas_y, canvas_x, canvas_y)
-        
-        if items:
-            tags = self.thumbnail_canvas.gettags(items[0])
-            name = None
-            for tag in tags:
-                if tag in self.thumbnail_items:
-                    name = tag
-                    break
-            
-            if name:
-                # Clear previous selection visuals
-                for selected_name in self.selected_thumbnails:
-                    if selected_name in self.thumbnail_items:
-                        bg_id = self.thumbnail_items[selected_name]['bg']
-                        self.thumbnail_canvas.itemconfig(bg_id, outline='#707070', width=2)
-                
-                self.selected_thumbnails.clear()
+
+        if not items:
+            return
+
+        tags = self.thumbnail_canvas.gettags(items[0])
+        name = None
+        for tag in tags:
+            if tag in self.thumbnail_items:
+                name = tag
+                break
+
+        if not name:
+            return
+
+        ctrl = (event.state & 0x0004) != 0  # Control key mask in Tk
+
+        if ctrl:
+            # Toggle selection without clearing others
+            if name in self.selected_thumbnails:
+                self.selected_thumbnails.remove(name)
+                bg_id = self.thumbnail_items[name]['bg']
+                self.thumbnail_canvas.itemconfig(bg_id, outline='#707070', width=2)
+            else:
                 self.selected_thumbnails.add(name)
-                
-                # Highlight selected
                 bg_id = self.thumbnail_items[name]['bg']
                 self.thumbnail_canvas.itemconfig(bg_id, outline='#00FF00', width=3)
-                
-                # Update main view
-                self.selected_sprite = name
-                self.display_sprite()
+        else:
+            # Clear all, select only this one
+            for selected_name in list(self.selected_thumbnails):
+                if selected_name in self.thumbnail_items:
+                    bg_id = self.thumbnail_items[selected_name]['bg']
+                    self.thumbnail_canvas.itemconfig(bg_id, outline='#707070', width=2)
+            self.selected_thumbnails.clear()
+            self.selected_thumbnails.add(name)
+            bg_id = self.thumbnail_items[name]['bg']
+            self.thumbnail_canvas.itemconfig(bg_id, outline='#00FF00', width=3)
+
+        # Update preview/info using the first selected, and show count if multi
+        if self.selected_thumbnails:
+            self.selected_sprite = next(iter(self.selected_thumbnails))
+            self.display_sprite()
+            if len(self.selected_thumbnails) > 1:
+                self.info_label.config(text=f"{len(self.selected_thumbnails)} sprites selected")
     
     def on_thumbnail_ctrl_click(self, event):
         """Handle ctrl+click for multi-selection"""

@@ -65,7 +65,7 @@ class RenderSystem(System):
                 frames = self.get_sprite_frames(entity)
                 current_frame_count = len(frames) // 4
                 direction = self.get_direction_for_sprite(entity)
-                directions = {'up': 0, 'down': 1, 'left': 2, 'right': 3}
+                directions = {'down': 0, 'up': 1, 'left': 2, 'right': 3}
                 if not direction in directions:
                     continue
                 

@@ -19,6 +19,7 @@ class ResourceFactory:
         self.tree_sprite3 = pygame.transform.scale(self.tree_sprite3, (32, 32))
         self.tree_sprite4 = self.sprite_manager.get_sprite("TREE_004")
         self.tree_sprite4 = pygame.transform.scale(self.tree_sprite4, (32, 32))
+        
         self.tree_sprite = {
             "Oak": self.tree_sprite1,
             "Pine": self.tree_sprite2,
@@ -58,7 +59,7 @@ class ResourceFactory:
             entity.add_component(sprite_component)
             entity.add_component(tree_component)
         else:
-            sprite_name = resource_type.upper() + "_001"
+            sprite_name = resource_type.lower() 
             sprite = self.sprite_manager.get_sprite(f"{sprite_name}")
             if not sprite:
                 sprite = pygame.Surface((32, 32))

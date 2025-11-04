@@ -11,7 +11,7 @@ class EntityFactory:
         self.DEBUG_SPRITE = pg.Surface((32, 32))
         self.DEBUG_SPRITE.fill((255, 0, 255))
 
-    def create_entity(self, entity_type: str, position: tuple[int, int]=(0,0), sprite_names: str | list[str] ="player_004", velocity: tuple[int, int]=(0,0), size: tuple[int, int]=(32,32)):
+    def create_entity(self, entity_type: str, position: tuple[int, int]=(0,0), sprite_names: str | list[str] ="player_004", velocity: tuple[int, int]=(0,0), size: tuple[int, int]=(64,64)):
         same_type_entity_count = sum(1 for e in self.state.entities if e.name.startswith(entity_type))
         sprites = []
         if isinstance(sprite_names, str):

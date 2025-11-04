@@ -56,6 +56,12 @@ class WorkerManagementSystem(System):
             if length != 0:
                 direction_x /= length
                 direction_y /= length
+            
+            # Calculate velocity for sprite direction detection
+            velocity_x = direction_x * 30 + random_x1 * 5 + random_x2 * 0.1
+            velocity_y = direction_y * 30 + random_y1 * 5 + random_y2 * 0.1
+            self.set_velocity(entity, (velocity_x, velocity_y))
+            
             new_x = position[0] + direction_x * 30 * dt + random_x1 * dt * 5 + random_x2 * dt * 0.1
             new_y = position[1] + direction_y * 30 * dt + random_y1 * dt * 5 + random_y2 * dt * 0.1
             self.set_position(entity, (new_x, new_y))
@@ -94,12 +100,19 @@ class WorkerManagementSystem(System):
             direction_y /= length
         
         distance_to_tree = length
-        speed = 200  # Units per second
+        speed = 50  # Units per second
         if distance_to_tree > self.worker_chopping_radius:
+            # Set velocity for sprite direction detection
+            velocity_x = direction_x * speed
+            velocity_y = direction_y * speed
+            self.set_velocity(entity, (velocity_x, velocity_y))
+            
             new_x = position[0] + direction_x * speed * dt
             new_y = position[1] + direction_y * speed * dt
             self.set_position(entity, (new_x, new_y))
         else:
+            # Stop moving when mining
+            self.set_velocity(entity, (0, 0))
             self.mine_resource(entity, resource_entity, dt)
         return self.get_position(entity)
 
